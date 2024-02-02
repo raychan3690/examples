@@ -1,5 +1,6 @@
 import { AccountConfig } from './configs/tools.config';
-import { Connection, DevInspectResults, Ed25519Keypair, JsonRpcProvider, RawSigner, SuiObjectResponse, SuiTransactionBlockResponse, TransactionBlock, bcs, devnetConnection, mainnetConnection, testnetConnection } from '@mysten/sui.js';
+import { LIMITS, Limits, BuildOptions, ProtocolConfig, Connection, DevInspectResults, Ed25519Keypair, JsonRpcProvider, RawSigner, SuiObjectResponse, SuiTransactionBlockResponse, TransactionBlock, bcs, devnetConnection, mainnetConnection, testnetConnection } from '@mysten/sui.js';
+import { encodeStr, Encoding} from '@mysten/bcs';
 
 export class SuiClient {
     public keypair: Ed25519Keypair;
@@ -165,10 +166,21 @@ export class SuiClient {
      * @returns Transactions sent results
      */
     async moveInspectImpl(tx: TransactionBlock, parseType?: string): Promise<any[]> {
+        
         const result = await this.provider.devInspectTransactionBlock({
             transactionBlock: tx,
             sender: this.address(),
         });
+        // let limit: Limits = {};
+        // let protocolConfig : ProtocolConfig;
+        const options: BuildOptions = {
+            provider: this.provider,
+            onlyTransactionKind: true
+          };
+        const abc = await tx.build(options)
+        const encoding: Encoding = "base64";
+        const bcstr = encodeStr(abc, encoding)
+        console.log(bcstr)
         return this.inspectResultParseAndPrint(result, parseType);
     }
 

@@ -3,7 +3,7 @@ import { SuiClient } from './src/sui-client';
 import { config, pool } from './main';
 
 const uiConfig = {
-    Package: '0x1ee4061d3c78d6244b5f32eb4011d081e52f5f4b484ca4a84de48b1146a779f7',
+    Package: '0x64372b54147adb0ac8a603adab92c81e3d732c8cafafa368d8f3ff9dcb6a53af',
 };
 
 enum OptionType {
@@ -61,32 +61,6 @@ export class UIGetter {
             borrow_balance: 'u256',
             supply_balance: 'u256',
         });
-
-        bcs.registerStructType('ReserveDataInfo', {
-            id: 'u8',
-            oracle_id: 'u8',
-            coin_type: 'string',
-            supply_cap: 'u256',
-            borrow_cap: 'u256',
-            supply_rate: 'u256',
-            borrow_rate: 'u256',
-            supply_index: 'u256',
-            borrow_index: 'u256',
-            total_supply: 'u256',
-            total_borrow: 'u256',
-            last_update_at: 'u64',
-            ltv: 'u256',
-            treasury_factor: 'u256',
-            treasury_balance: 'u256',
-            base_rate: 'u256',
-            multiplier: 'u256',
-            jump_rate_multiplier: 'u256',
-            reserve_factor: 'u256',
-            optimal_utilization: 'u256',
-            liquidation_ratio: 'u256',
-            liquidation_bonus: 'u256',
-            liquidation_threshold: 'u256',
-        });
     }
 
     async getIncentivePools(asset_id: number, option: OptionType, user?: string) {
@@ -103,7 +77,7 @@ export class UIGetter {
             [], // type arguments is null
             'vector<IncentivePoolInfo>' // parse type
         );
-        console.log('The Incentive Pool Array: ', result);
+        //console.log('The Incentive Pool Array: ', result);
     }
 
     async getIncentiveAPY(option: OptionType) {
@@ -139,23 +113,37 @@ export class UIGetter {
         console.log('The Incentive Pool Info By Phase: ', JSON.stringify(result, null, 2));
     }
 
+    async claim(assetId: number) {
+        const result = await this.sui.moveInspect(
+            `${config.ProtocolPackage}::incentive_v2::claim_reward`,
+            [
+                '0x06', // clock object id
+                "0xf87a8acb8b81d14307894d12595541a73f19933f88e1326d5be349c7a6f7559c", // the incentive object v2
+                "0xa20e18085ce04be8aa722fbe85423f1ad6b1ae3b1be81ffac00a30f1d6d6ab51", // incentiveFundsPool
+                "0xbb4e2f4b6205c2e2a2db47aeb4f830796ec7c005f88537ee775986639bc442fe", // object id of storage
+                assetId, // 0 = Sui 1=USDC 2=USDT 3=WETH 4=CETUS 5=vSui 6=haSui
+                3 // 1 for Save, 3 for Borrow
+            ],
+            ["0xbde4ba4c2e274a60ce15c1cfff9e5c42e41654ac8b6d906a57efa4bd3c29f47d::hasui::HASUI"], // type arguments is null
+            'string' // parse type
+        );
+        console.log('claim: ', result);
+    }
+
     async getUserState(address: string) {
         const result = await this.sui.moveInspect(`${uiConfig.Package}::getter::get_user_state`, [config.StorageId, address], [], 'vector<UserStateInfo>');
         console.log('The User State: ', JSON.stringify(result, null, 2));
     }
 
-    async getReserveData() {
-        const result = await this.sui.moveInspect(`${uiConfig.Package}::getter::get_reserve_data`, [config.StorageId], [], 'vector<ReserveDataInfo>');
-        console.log('The Reserve Data: ', JSON.stringify(result, null, 2));
-    }
-
     async main() {
-        // await this.getIncentivePools(pool.sui.assetId, OptionType.OptionSupply); // get all incentive pools issued to supply users in the sui pool
+        //await this.getIncentivePools(pool.sui.assetId, OptionType.OptionSupply); // get all incentive pools issued to supply users in the sui pool
+        await this.claim(4);
+        await this.claim(5);
+        await this.claim(6);
         // await this.getIncentiveAPY(OptionType.OptionSupply); // get the current incentive apy of all supply pools, provide the option type and get the apy, should be div 1e27
         // await this.getIncentivePoolsGroupByPhase(PoolStatus.All, OptionType.OptionSupply); // get the pool aggregated by phase based on status
 
-        // await this.getUserState('YOUR_ADDRESS');
-        // await this.getReserveData();
+        //await this.getUserState('0x6112b5cfdc8ca0db16e212ff1481bac2850be48e0e56697105251f8f7e60f8cd');
     }
 }
 
